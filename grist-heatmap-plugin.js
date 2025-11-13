@@ -70,10 +70,11 @@ function renderHeat(records, mappings) {
   }
 
   heatLayer = L.heatLayer(points, {
-    radius: 250, // Increased radius
-    blur: 35,   // Increased blur
+    radius: 50,
+    blur: 30,
     maxZoom: 17,
-    // More contrasting gradient
+    minOpacity: 0.2, // Increased minOpacity for better visibility of low-density areas
+    max: 0.5,        // Decreased max to exaggerate hotness with fewer points
     gradient: {
       0.0: 'blue',
       0.2: 'cyan',
@@ -82,7 +83,7 @@ function renderHeat(records, mappings) {
       0.8: 'orange',
       1.0: 'red'
     },
-    maxOpacity: 0.8 // Increase maxOpacity for better visibility
+    maxOpacity: 0.8
   }).addTo(map);
 
   // fit bounds safely (if only one point, expand a small box)
