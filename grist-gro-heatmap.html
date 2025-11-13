@@ -25,7 +25,14 @@
   let heatLayer;
 
   // tolerant accessor for latitude & longitude (handles many column name styles)
-  function getLatLonFromRow(row) {
+  function getLatLonFromRow(row, mappings) {
+    if (mappings && mappings.lat && mappings.lon) {
+      const lat = row[mappings.lat];
+      const lon = row[mappings.lon];
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        return [lat, lon];
+      }
+    }
     // try many common keys (case-sensitive keys as Grist sends them)
     const latKeys = ['Lat','LAT','lat','Latitude','LATITUDE','latitude'];
     const lonKeys = ['Lng','LNG','lng','Lon','LON','lon','Longitude','LONGITUDE','longitude'];
@@ -36,7 +43,7 @@
     return null;
   }
 
-  function renderHeat(records) {
+  function renderHeat(records, mappings) {
     console.log("renderHeat called; records length:", records?.length ?? 0);
     const points = [];
     if (!records || !records.length) {
@@ -45,7 +52,7 @@
       // Show example of first few rows for debugging
       console.log("First 5 records preview:", records.slice(0,5));
       for (const r of records) {
-        const pair = getLatLonFromRow(r);
+        const pair = getLatLonFromRow(r, mappings);
         if (pair) points.push([pair[0], pair[1], 1]); // weight=1 for each row
       }
       console.log("Parsed points count:", points.length);
@@ -73,8 +80,10 @@
   // Connect to Grist — request read access and request the likely column names.
   grist.ready({
     requiredAccess: 'read table',
-    // list the column ids your widget will use (these should be in your table)
-    columns: ['Employer_ID','Employer','Lng','Lat']
+    columns: [
+      { name: "lat", type: 'Numeric', title: 'Latitude', optional: true },
+      { name: "lon", type: 'Numeric', title: 'Longitude', optional: true }
+    ]
   });
 
   // Debug: log mapping info when plugin attaches
@@ -87,7 +96,8 @@
   grist.onRecords((records, mappings) => {
     // records is an array of objects where keys are column IDs (exact names in Grist)
     console.log("onRecords invoked. mappings:", mappings);
-    renderHeat(records || []);
+    console.log("Raw records received:", JSON.stringify(records, null, 2));
+    renderHeat(records || [], mappings);
   });
 
   </script>
