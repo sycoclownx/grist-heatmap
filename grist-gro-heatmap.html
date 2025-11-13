@@ -2,59 +2,62 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Heatmap by Employer</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Grist Leaflet Heatmap</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    html,body,#map { height: 100%; margin:0; padding:0; }
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
+  <!-- Libraries -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat@0.3.0/dist/leaflet-heat.js"></script>
-  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 
   <script>
-  const params = new URLSearchParams(window.location.search);
-  const csvUrl = params.get('csv');
   const map = L.map('map').setView([32.806671, -86.791130], 7); // Alabama center
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution: '© OpenStreetMap'
+    attribution: '© OpenStreetMap contributors'
   }).addTo(map);
 
-  function makeHeat(points) {
-    L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
+  let heatLayer;
+
+  function renderHeat(data) {
+    if (heatLayer) {
+      map.removeLayer(heatLayer);
+    }
+    const points = [];
+
+    for (const row of data) {
+      const lat = parseFloat(row.latitude ?? row.lat);
+      const lon = parseFloat(row.longitude ?? row.long);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        points.push([lat, lon, 1]);
+      }
+    }
+
     if (points.length) {
-      map.fitBounds(points.map(p => [p[0], p[1]]), { padding: [30, 30] });
+      heatLayer = L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
+      const latlngs = points.map(p => [p[0], p[1]]);
+      map.fitBounds(latlngs, { padding: [30, 30] });
     }
   }
 
-  function parseCSV(text) {
-    const data = Papa.parse(text, { header: true, skipEmptyLines: true }).data;
-    const pts = [];
-    data.forEach(r => {
-      const lat = parseFloat(r.latitude || r.lat);
-      const lon = parseFloat(r.longitude || r.long);
-      if (!isNaN(lat) && !isNaN(lon)) pts.push([lat, lon, 1]);
-    });
-    makeHeat(pts);
-  }
+  // Initialize Grist widget
+  grist.ready({
+    requiredAccess: 'read table',
+    columns: ['latitude', 'longitude', 'employer_name']
+  });
 
-  if (csvUrl) {
-    fetch(csvUrl)
-      .then(r => r.text())
-      .then(parseCSV)
-      .catch(e => alert('Error loading CSV: ' + e));
-  } else {
-    // demo points if none provided
-    parseCSV(`latitude,longitude,employer_name
-33.5186,-86.8104,Company A
-32.3668,-86.3000,Company B
-30.6944,-88.0430,Company C`);
-  }
+  // Listen for table updates
+  grist.onRecords((records, mappings) => {
+    if (!records) return;
+    renderHeat(records);
+  });
   </script>
 </body>
 </html>
