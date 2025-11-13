@@ -71,7 +71,7 @@ function renderHeat(records, mappings) {
 
   heatLayer = L.heatLayer(points, {
     radius: 80, // Further increased radius
-    blur: 60,   // Further increased blur
+    blur: 45,   // Further increased blur
     maxZoom: 17,
     minOpacity: 0.2,
     max: 0.5,
