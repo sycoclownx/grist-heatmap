@@ -5,65 +5,91 @@
   <title>Grist Leaflet Heatmap</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <style>
-    html, body, #map { height: 100%; margin: 0; padding: 0; }
-  </style>
+  <style> html, body, #map { height:100%; margin:0; padding:0; } </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <!-- Libraries -->
+  <!-- libs -->
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat@0.3.0/dist/leaflet-heat.js"></script>
 
   <script>
-  // Initialize map centered on Alabama
+  // Set up map
   const map = L.map('map').setView([32.806671, -86.791130], 7);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap contributors'
+    maxZoom: 19, attribution: '© OpenStreetMap contributors'
   }).addTo(map);
 
   let heatLayer;
 
-  // Function to draw heat points
-  function renderHeat(data) {
-    if (!data || !data.length) {
-      console.log("No records received from Grist");
-      return;
-    }
+  // tolerant accessor for latitude & longitude (handles many column name styles)
+  function getLatLonFromRow(row) {
+    // try many common keys (case-sensitive keys as Grist sends them)
+    const latKeys = ['Lat','LAT','lat','Latitude','LATITUDE','latitude'];
+    const lonKeys = ['Lng','LNG','lng','Lon','LON','lon','Longitude','LONGITUDE','longitude'];
+    let lat = null, lon = null;
+    for (const k of latKeys) { if (k in row && row[k] != null) { lat = parseFloat(row[k]); break; } }
+    for (const k of lonKeys) { if (k in row && row[k] != null) { lon = parseFloat(row[k]); break; } }
+    if (Number.isFinite(lat) && Number.isFinite(lon)) return [lat, lon];
+    return null;
+  }
 
+  function renderHeat(records) {
+    console.log("renderHeat called; records length:", records?.length ?? 0);
     const points = [];
-    for (const row of data) {
-      const lat = parseFloat(row.LATITUDE);
-      const lon = parseFloat(row.LONGITUDE);
-      if (!isNaN(lat) && !isNaN(lon)) {
-        points.push([lat, lon, 1]); // 1 = equal weight per record
+    if (!records || !records.length) {
+      console.log("No records to render.");
+    } else {
+      // Show example of first few rows for debugging
+      console.log("First 5 records preview:", records.slice(0,5));
+      for (const r of records) {
+        const pair = getLatLonFromRow(r);
+        if (pair) points.push([pair[0], pair[1], 1]); // weight=1 for each row
       }
+      console.log("Parsed points count:", points.length);
     }
 
-    console.log(`Rendering ${points.length} points`);
-
+    if (heatLayer) { try { map.removeLayer(heatLayer); } catch(e){} }
     if (!points.length) return;
 
-    if (heatLayer) map.removeLayer(heatLayer);
     heatLayer = L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
 
-    // Zoom to fit points
-    const latlngs = points.map(p => [p[0], p[1]]);
+    // fit bounds safely (if only one point, expand a small box)
     try {
-      map.fitBounds(latlngs, { padding: [30, 30] });
-    } catch (e) {
-      console.warn("Could not fit map bounds:", e);
+      if (points.length === 1) {
+        const p = points[0];
+        const pad = 0.1;
+        map.fitBounds([[p[0]-pad, p[1]-pad],[p[0]+pad, p[1]+pad]], { padding: [30,30] });
+      } else {
+        map.fitBounds(points.map(p => [p[0], p[1]]), { padding: [30,30] });
+      }
+    } catch (err) {
+      console.warn("fitBounds failed:", err);
     }
   }
 
-  // Connect to Grist
+  // Connect to Grist — request read access and request the likely column names.
   grist.ready({
     requiredAccess: 'read table',
-    columns: ['LATITUDE', 'LONGITUDE']
+    // list the column ids your widget will use (these should be in your table)
+    columns: ['Employer_ID','Employer','Lng','Lat']
   });
 
-  // Listen for data updates
-  grist.onRecords
+  // Debug: log mapping info when plugin attaches
+  grist.onReady((info) => {
+    console.log("Grist widget ready. Info:", info);
+    // info contains availableTables / selected table metadata in some environments
+  });
+
+  // Main listener: whenever records change, render heat
+  grist.onRecords((records, mappings) => {
+    // records is an array of objects where keys are column IDs (exact names in Grist)
+    console.log("onRecords invoked. mappings:", mappings);
+    renderHeat(records || []);
+  });
+
+  </script>
+</body>
+</html>
