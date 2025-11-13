@@ -95,6 +95,12 @@
     console.error(e);
   }
 
-  </script>
-</body>
-</html>
+  // Main listener: whenever records change, render heat
+  grist.onRecords((records, mappings) => {
+    // records is an array of objects where keys are column IDs (exact names in Grist)
+    const mappedRecords = grist.mapColumnNames(records, mappings);
+    console.log("onRecords invoked. mappings:", mappings);
+    console.log("Raw records received:", JSON.stringify(records, null, 2));
+    console.log("Mapped records:", JSON.stringify(mappedRecords, null, 2));
+    renderHeat(mappedRecords || [], mappings);
+  });
