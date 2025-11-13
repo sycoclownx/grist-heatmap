@@ -1,5 +1,14 @@
 // Set up map
-const map = L.map('map').setView([32.806671, -86.791130], 7);
+// Alabama bounds
+const minLat = 30.18;
+const maxLat = 35.00;
+const minLon = -88.47; // West Longitude is negative
+const maxLon = -84.88;
+
+const map = L.map('map');
+map.fitBounds([[minLat, minLon], [maxLat, maxLon]], { padding: [10, 10] });
+map.setMaxBounds([[minLat, minLon], [maxLat, maxLon]]);
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19, attribution: '© OpenStreetMap contributors'
 }).addTo(map);
