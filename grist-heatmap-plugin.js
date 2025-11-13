@@ -76,12 +76,12 @@ function renderHeat(records, mappings) {
     minOpacity: 0.2,
     max: 0.5,
     gradient: {
-      0.0: 'blue',
-      0.2: 'cyan',
-      0.4: 'lime',
-      0.6: 'yellow',
-      0.8: 'orange',
-      1.0: 'red'
+      0.0: 'white',   // Start with white for low intensity
+      0.2: 'yellow',
+      0.4: 'orange',
+      0.6: 'red',
+      0.8: 'darkred', // More vibrant red
+      1.0: 'purple'   // End with purple for highest intensity
     },
     maxOpacity: 0.8
   }).addTo(map);
