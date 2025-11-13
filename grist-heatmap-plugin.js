@@ -70,7 +70,7 @@ function renderHeat(records, mappings) {
   }
 
   heatLayer = L.heatLayer(points, {
-    radius: 75, // Increased radius
+    radius: 250, // Increased radius
     blur: 35,   // Increased blur
     maxZoom: 17,
     // More contrasting gradient
