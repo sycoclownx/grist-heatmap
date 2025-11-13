@@ -13,12 +13,13 @@
   <div id="map"></div>
 
   <!-- Libraries -->
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat@0.3.0/dist/leaflet-heat.js"></script>
-  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 
   <script>
-  const map = L.map('map').setView([32.806671, -86.791130], 7); // Alabama center
+  // Initialize map centered on Alabama
+  const map = L.map('map').setView([32.806671, -86.791130], 7);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© OpenStreetMap contributors'
@@ -26,38 +27,43 @@
 
   let heatLayer;
 
+  // Function to draw heat points
   function renderHeat(data) {
-    if (heatLayer) {
-      map.removeLayer(heatLayer);
+    if (!data || !data.length) {
+      console.log("No records received from Grist");
+      return;
     }
-    const points = [];
 
+    const points = [];
     for (const row of data) {
-      const lat = parseFloat(row.latitude ?? row.lat);
-      const lon = parseFloat(row.longitude ?? row.long);
+      const lat = parseFloat(row.LATITUDE);
+      const lon = parseFloat(row.LONGITUDE);
       if (!isNaN(lat) && !isNaN(lon)) {
-        points.push([lat, lon, 1]);
+        points.push([lat, lon, 1]); // 1 = equal weight per record
       }
     }
 
-    if (points.length) {
-      heatLayer = L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
-      const latlngs = points.map(p => [p[0], p[1]]);
+    console.log(`Rendering ${points.length} points`);
+
+    if (!points.length) return;
+
+    if (heatLayer) map.removeLayer(heatLayer);
+    heatLayer = L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
+
+    // Zoom to fit points
+    const latlngs = points.map(p => [p[0], p[1]]);
+    try {
       map.fitBounds(latlngs, { padding: [30, 30] });
+    } catch (e) {
+      console.warn("Could not fit map bounds:", e);
     }
   }
 
-  // Initialize Grist widget
+  // Connect to Grist
   grist.ready({
     requiredAccess: 'read table',
-    columns: ['latitude', 'longitude', 'employer_name']
+    columns: ['LATITUDE', 'LONGITUDE']
   });
 
-  // Listen for table updates
-  grist.onRecords((records, mappings) => {
-    if (!records) return;
-    renderHeat(records);
-  });
-  </script>
-</body>
-</html>
+  // Listen for data updates
+  grist.onRecords
