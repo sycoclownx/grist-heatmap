@@ -13,7 +13,7 @@
   <!-- libs -->
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 
   <script>
   // Set up map
@@ -86,16 +86,14 @@
     ]
   });
 
-
-  // Main listener: whenever records change, render heat
-  grist.onRecords((records, mappings) => {
-    // records is an array of objects where keys are column IDs (exact names in Grist)
-    const mappedRecords = grist.mapColumnNames(records, mappings);
-    console.log("onRecords invoked. mappings:", mappings);
-    console.log("Raw records received:", JSON.stringify(records, null, 2));
-    console.log("Mapped records:", JSON.stringify(mappedRecords, null, 2));
-    renderHeat(mappedRecords || [], mappings);
-  });
+  try {
+    grist.onReady((info) => {
+      console.log("Grist widget ready. Info:", info);
+    });
+  } catch (e) {
+    console.error("grist.onReady is not a function. It is safe to ignore this error.");
+    console.error(e);
+  }
 
   </script>
 </body>
