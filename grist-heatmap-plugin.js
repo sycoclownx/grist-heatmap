@@ -28,6 +28,12 @@ function getLatLonFromRow(row, mappings) {
 function renderHeat(records, mappings) {
   console.log("renderHeat called; records length:", records?.length ?? 0);
   const points = [];
+  // Alabama bounds
+  const minLat = 30.18;
+  const maxLat = 35.00;
+  const minLon = -88.47; // West Longitude is negative
+  const maxLon = -84.88;
+
   if (!records || !records.length) {
     console.log("No records to render.");
     // Optionally display a message to the user
@@ -36,18 +42,39 @@ function renderHeat(records, mappings) {
     console.log("First 5 records preview:", records.slice(0,5));
     for (const r of records) {
       const pair = getLatLonFromRow(r, mappings);
-      if (pair) points.push([pair[0], pair[1], 1]); // weight=1 for each row
+      if (pair) {
+        const lat = pair[0];
+        const lon = pair[1];
+        // Filter for Alabama
+        if (lat >= minLat && lat <= maxLat && lon >= minLon && lon <= maxLon) {
+          points.push([lat, lon, 1]); // weight=1 for each row
+        }
+      }
     }
-    console.log("Parsed points count:", points.length);
+    console.log("Parsed points count (filtered for Alabama):", points.length);
   }
 
   if (heatLayer) { try { map.removeLayer(heatLayer); } catch(e){} }
   if (!points.length) {
-    console.log("No valid points to render heatmap.");
+    console.log("No valid points to render heatmap (after Alabama filter).");
     return;
   }
 
-  heatLayer = L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
+  heatLayer = L.heatLayer(points, {
+    radius: 25,
+    blur: 15,
+    maxZoom: 17,
+    // More contrasting gradient
+    gradient: {
+      0.0: 'blue',
+      0.2: 'cyan',
+      0.4: 'lime',
+      0.6: 'yellow',
+      0.8: 'orange',
+      1.0: 'red'
+    },
+    maxOpacity: 0.8 // Increase maxOpacity for better visibility
+  }).addTo(map);
 
   // fit bounds safely (if only one point, expand a small box)
   try {
