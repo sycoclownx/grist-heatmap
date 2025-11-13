@@ -13,7 +13,7 @@
   <!-- libs -->
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.heat@0.3.0/dist/leaflet-heat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
   <script>
   // Set up map
@@ -86,11 +86,6 @@
     ]
   });
 
-  // Debug: log mapping info when plugin attaches
-  grist.onReady((info) => {
-    console.log("Grist widget ready. Info:", info);
-    // info contains availableTables / selected table metadata in some environments
-  });
 
   // Main listener: whenever records change, render heat
   grist.onRecords((records, mappings) => {
